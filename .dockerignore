@@ -1,0 +1,15 @@
+node_modules
+.next
+.git
+.gitignore
+.env
+.env.local
+.env.*.local
+npm-debug.log*
+README.md
+.vscode
+.DS_Store
+*.log
+.turbo
+coverage
+prisma/migrations/dev.db
