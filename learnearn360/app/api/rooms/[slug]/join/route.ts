@@ -3,15 +3,16 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { XP_REWARDS } from "@/lib/utils";
 
-type Ctx = { params: { slug: string } };
+type Ctx = { params: Promise<{ slug: string }> };
 
 export async function POST(req: NextRequest, { params }: Ctx) {
+  const resolvedParams = await params;
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const userId = session.user.id;
 
-  const room = await db.room.findUnique({ where: { slug: params.slug } });
+  const room = await db.room.findUnique({ where: { slug: resolvedParams.slug } });
   if (!room) return NextResponse.json({ error: "Room not found" }, { status: 404 });
 
   const existing = await db.roomMember.findUnique({ where: { roomId_userId: { roomId: room.id, userId } } });
@@ -28,11 +29,12 @@ export async function POST(req: NextRequest, { params }: Ctx) {
 }
 
 export async function DELETE(req: NextRequest, { params }: Ctx) {
+  const resolvedParams = await params;
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const userId = session.user.id;
-  const room = await db.room.findUnique({ where: { slug: params.slug } });
+  const room = await db.room.findUnique({ where: { slug: resolvedParams.slug } });
   if (!room) return NextResponse.json({ error: "Room not found" }, { status: 404 });
 
   await db.$transaction([

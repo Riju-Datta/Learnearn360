@@ -4,20 +4,21 @@ import { db } from "@/lib/db";
 import { awardXp, updateStreak } from "@/lib/gamification";
 import { XP_REWARDS } from "@/lib/utils";
 
-type Ctx = { params: { id: string } };
+type Ctx = { params: Promise<{ id: string }> };
 
 export async function PATCH(req: NextRequest, { params }: Ctx) {
+  const resolvedParams = await params;
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const userId = session.user.id;
 
-  const goal = await db.dailyGoal.findUnique({ where: { id: params.id } });
+  const goal = await db.dailyGoal.findUnique({ where: { id: resolvedParams.id } });
   if (!goal || goal.userId !== userId) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const { isCompleted } = await req.json();
 
   const updated = await db.dailyGoal.update({
-    where: { id: params.id },
+    where: { id: resolvedParams.id },
     data: { isCompleted, completedAt: isCompleted ? new Date() : null },
   });
 
@@ -30,12 +31,13 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
 }
 
 export async function DELETE(req: NextRequest, { params }: Ctx) {
+  const resolvedParams = await params;
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const goal = await db.dailyGoal.findUnique({ where: { id: params.id } });
+  const goal = await db.dailyGoal.findUnique({ where: { id: resolvedParams.id } });
   if (!goal || goal.userId !== session.user.id) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  await db.dailyGoal.delete({ where: { id: params.id } });
+  await db.dailyGoal.delete({ where: { id: resolvedParams.id } });
   return NextResponse.json({ deleted: true });
 }

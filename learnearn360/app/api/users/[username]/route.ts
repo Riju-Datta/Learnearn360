@@ -2,14 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 
-type Ctx = { params: { username: string } };
+type Ctx = { params: Promise<{ username: string }> };
 
 export async function GET(req: NextRequest, { params }: Ctx) {
+  const resolvedParams = await params;
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const user = await db.user.findUnique({
-    where: { username: params.username },
+    where: { username: resolvedParams.username },
     select: {
       id: true, name: true, username: true, image: true,
       xpTotal: true, xpLevel: true, streakCurrent: true, streakLongest: true,

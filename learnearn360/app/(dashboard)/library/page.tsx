@@ -5,14 +5,15 @@ import { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Library" };
 
-export default async function LibraryPage({ searchParams }: { searchParams: { category?: string; level?: string; search?: string } }) {
+export default async function LibraryPage({ searchParams }: { searchParams: Promise<{ category?: string; level?: string; search?: string }> }) {
+  const params = await searchParams;
   const session = await auth();
   const userId = session!.user.id;
 
   const where: any = { isPublished: true };
-  if (searchParams.category) where.category = searchParams.category;
-  if (searchParams.level) where.level = searchParams.level;
-  if (searchParams.search) where.title = { contains: searchParams.search, mode: "insensitive" };
+  if (params.category) where.category = params.category;
+  if (params.level) where.level = params.level;
+  if (params.search) where.title = { contains: params.search, mode: "insensitive" };
 
   const [courses, enrollments] = await Promise.all([
     db.course.findMany({

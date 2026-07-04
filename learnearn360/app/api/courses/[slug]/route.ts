@@ -2,14 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 
-type Ctx = { params: { slug: string } };
+type Ctx = { params: Promise<{ slug: string }> };
 
 export async function GET(req: NextRequest, { params }: Ctx) {
+  const resolvedParams = await params;
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const course = await db.course.findUnique({
-    where: { slug: params.slug },
+    where: { slug: resolvedParams.slug },
     include: {
       instructor: { select: { id: true, name: true, username: true, image: true } },
       lessons: { orderBy: { sortOrder: "asc" } },
@@ -33,10 +34,11 @@ export async function GET(req: NextRequest, { params }: Ctx) {
 }
 
 export async function PATCH(req: NextRequest, { params }: Ctx) {
+  const resolvedParams = await params;
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const course = await db.course.findUnique({ where: { slug: params.slug } });
+  const course = await db.course.findUnique({ where: { slug: resolvedParams.slug } });
   if (!course) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const isInstructor = course.instructorId === session.user.id;
@@ -44,6 +46,6 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
   if (!isInstructor && !isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await req.json();
-  const updated = await db.course.update({ where: { slug: params.slug }, data: body });
+  const updated = await db.course.update({ where: { slug: resolvedParams.slug }, data: body });
   return NextResponse.json(updated);
 }

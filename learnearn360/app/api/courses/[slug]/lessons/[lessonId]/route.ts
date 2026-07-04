@@ -4,15 +4,16 @@ import { db } from "@/lib/db";
 import { awardXp, updateStreak } from "@/lib/gamification";
 import { XP_REWARDS } from "@/lib/utils";
 
-type Ctx = { params: { slug: string; lessonId: string } };
+type Ctx = { params: Promise<{ slug: string; lessonId: string }> };
 
 export async function POST(req: NextRequest, { params }: Ctx) {
+  const resolvedParams = await params;
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const userId = session.user.id;
 
   const course = await db.course.findUnique({
-    where: { slug: params.slug },
+    where: { slug: resolvedParams.slug },
     include: { lessons: { select: { id: true } } },
   });
   if (!course) return NextResponse.json({ error: "Course not found" }, { status: 404 });
@@ -20,7 +21,7 @@ export async function POST(req: NextRequest, { params }: Ctx) {
   const enrollment = await db.enrollment.findUnique({ where: { userId_courseId: { userId, courseId: course.id } } });
   if (!enrollment) return NextResponse.json({ error: "Not enrolled" }, { status: 403 });
 
-  const lesson = await db.lesson.findUnique({ where: { id: params.lessonId } });
+  const lesson = await db.lesson.findUnique({ where: { id: resolvedParams.lessonId } });
   if (!lesson || lesson.courseId !== course.id) return NextResponse.json({ error: "Lesson not found" }, { status: 404 });
 
   const existing = await db.lessonCompletion.findUnique({

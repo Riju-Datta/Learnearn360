@@ -5,13 +5,14 @@ import { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Rooms" };
 
-export default async function RoomsPage({ searchParams }: { searchParams: { category?: string; search?: string } }) {
+export default async function RoomsPage({ searchParams }: { searchParams: Promise<{ category?: string; search?: string }> }) {
+  const params = await searchParams;
   const session = await auth();
   const userId = session!.user.id;
 
   const where: any = {};
-  if (searchParams.category) where.category = searchParams.category;
-  if (searchParams.search) where.name = { contains: searchParams.search, mode: "insensitive" };
+  if (params.category) where.category = params.category;
+  if (params.search) where.name = { contains: params.search, mode: "insensitive" };
 
   const [rooms, myRoomIds] = await Promise.all([
     db.room.findMany({
@@ -28,5 +29,5 @@ export default async function RoomsPage({ searchParams }: { searchParams: { cate
   const memberSet = new Set(myRoomIds.map((m) => m.roomId));
   const roomsWithMembership = rooms.map((r) => ({ ...r, isMember: memberSet.has(r.id) }));
 
-  return <RoomsClient rooms={roomsWithMembership} userId={userId} activeCategory={searchParams.category} />;
+  return <RoomsClient rooms={roomsWithMembership} userId={userId} activeCategory={params.category} />;
 }

@@ -6,19 +6,20 @@ import { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Manage Users" };
 
-export default async function AdminUsersPage({ searchParams }: { searchParams: { search?: string; plan?: string } }) {
+export default async function AdminUsersPage({ searchParams }: { searchParams: Promise<{ search?: string; plan?: string }> }) {
+  const params = await searchParams;
   const session = await auth();
   if (session?.user.role !== "ADMIN") redirect("/dashboard");
 
   const where: any = {};
-  if (searchParams.search) {
+  if (params.search) {
     where.OR = [
-      { name: { contains: searchParams.search, mode: "insensitive" } },
-      { email: { contains: searchParams.search, mode: "insensitive" } },
-      { username: { contains: searchParams.search, mode: "insensitive" } },
+      { name: { contains: params.search, mode: "insensitive" } },
+      { email: { contains: params.search, mode: "insensitive" } },
+      { username: { contains: params.search, mode: "insensitive" } },
     ];
   }
-  if (searchParams.plan) where.plan = searchParams.plan;
+  if (params.plan) where.plan = params.plan;
 
   const users = await db.user.findMany({
     where,

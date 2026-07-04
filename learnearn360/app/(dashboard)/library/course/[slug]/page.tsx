@@ -4,19 +4,21 @@ import { notFound } from "next/navigation";
 import { CourseDetailClient } from "@/components/courses/course-detail-client";
 import { Metadata } from "next";
 
-type Props = { params: { slug: string } };
+type Props = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const course = await db.course.findUnique({ where: { slug: params.slug } });
+  const { slug } = await params;
+  const course = await db.course.findUnique({ where: { slug } });
   return { title: course?.title || "Course" };
 }
 
 export default async function CourseDetailPage({ params }: Props) {
+  const { slug } = await params;
   const session = await auth();
   const userId = session!.user.id;
 
   const course = await db.course.findUnique({
-    where: { slug: params.slug },
+    where: { slug },
     include: {
       instructor: { select: { id: true, name: true, username: true, image: true, profile: { select: { bio: true, headline: true } } } },
       lessons: { orderBy: { sortOrder: "asc" } },

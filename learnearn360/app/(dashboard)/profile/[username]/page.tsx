@@ -4,19 +4,21 @@ import { notFound } from "next/navigation";
 import { ProfileClient } from "@/components/profile/profile-client";
 import { Metadata } from "next";
 
-type Props = { params: { username: string } };
+type Props = { params: Promise<{ username: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const user = await db.user.findUnique({ where: { username: params.username } });
+  const { username } = await params;
+  const user = await db.user.findUnique({ where: { username } });
   return { title: user ? `${user.name || user.username} (@${user.username})` : "Profile" };
 }
 
 export default async function ProfilePage({ params }: Props) {
+  const { username } = await params;
   const session = await auth();
   const currentUserId = session!.user.id;
 
   const user = await db.user.findUnique({
-    where: { username: params.username },
+    where: { username },
     include: {
       profile: { include: { skills: true } },
       userBadges: { include: { badge: true }, orderBy: { earnedAt: "desc" } },

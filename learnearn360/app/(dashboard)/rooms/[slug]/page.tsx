@@ -4,19 +4,21 @@ import { notFound } from "next/navigation";
 import { RoomDetailClient } from "@/components/rooms/room-detail-client";
 import { Metadata } from "next";
 
-type Props = { params: { slug: string } };
+type Props = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const room = await db.room.findUnique({ where: { slug: params.slug } });
+  const { slug } = await params;
+  const room = await db.room.findUnique({ where: { slug } });
   return { title: room?.name || "Room" };
 }
 
 export default async function RoomDetailPage({ params }: Props) {
+  const { slug } = await params;
   const session = await auth();
   const userId = session!.user.id;
 
   const room = await db.room.findUnique({
-    where: { slug: params.slug },
+    where: { slug },
     include: {
       owner: { select: { id: true, name: true, username: true, image: true } },
       _count: { select: { members: true, posts: true } },

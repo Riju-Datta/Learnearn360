@@ -4,14 +4,15 @@ import { db } from "@/lib/db";
 import { awardXp } from "@/lib/gamification";
 import { XP_REWARDS } from "@/lib/utils";
 
-type Ctx = { params: { username: string } };
+type Ctx = { params: Promise<{ username: string }> };
 
 export async function POST(req: NextRequest, { params }: Ctx) {
+  const resolvedParams = await params;
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const followerId = session.user.id;
 
-  const target = await db.user.findUnique({ where: { username: params.username } });
+  const target = await db.user.findUnique({ where: { username: resolvedParams.username } });
   if (!target) return NextResponse.json({ error: "User not found" }, { status: 404 });
   if (target.id === followerId) return NextResponse.json({ error: "Cannot follow yourself" }, { status: 400 });
 
@@ -33,11 +34,12 @@ export async function POST(req: NextRequest, { params }: Ctx) {
 }
 
 export async function DELETE(req: NextRequest, { params }: Ctx) {
+  const resolvedParams = await params;
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const followerId = session.user.id;
 
-  const target = await db.user.findUnique({ where: { username: params.username } });
+  const target = await db.user.findUnique({ where: { username: resolvedParams.username } });
   if (!target) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
   await db.follow.delete({ where: { followerId_followingId: { followerId, followingId: target.id } } }).catch(() => null);

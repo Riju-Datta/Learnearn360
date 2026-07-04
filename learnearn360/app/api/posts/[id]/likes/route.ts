@@ -3,14 +3,15 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { XP_REWARDS } from "@/lib/utils";
 
-type Ctx = { params: { id: string } };
+type Ctx = { params: Promise<{ id: string }> };
 
 export async function POST(req: NextRequest, { params }: Ctx) {
+  const resolvedParams = await params;
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const userId = session.user.id;
 
-  const post = await db.post.findUnique({ where: { id: params.id } });
+  const post = await db.post.findUnique({ where: { id: resolvedParams.id } });
   if (!post) return NextResponse.json({ error: "Post not found" }, { status: 404 });
 
   const existing = await db.postLike.findUnique({ where: { postId_userId: { postId: post.id, userId } } });
@@ -42,11 +43,12 @@ export async function POST(req: NextRequest, { params }: Ctx) {
 }
 
 export async function DELETE(req: NextRequest, { params }: Ctx) {
+  const resolvedParams = await params;
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const userId = session.user.id;
 
-  const post = await db.post.findUnique({ where: { id: params.id } });
+  const post = await db.post.findUnique({ where: { id: resolvedParams.id } });
   if (!post) return NextResponse.json({ error: "Post not found" }, { status: 404 });
 
   await db.$transaction([
